@@ -1,27 +1,28 @@
-import React from 'react'
-import { useAuth } from '../context/AuthContext'
-import { Navigate } from 'react-router';
+import React from "react";
+import { useAuth } from "../context/AuthContext";
+import { Navigate } from "react-router-dom";
 
-const PrivateRoute = ({children}) => {
-    const {currentUser, loading} = useAuth();
+const PrivateRoute = ({ children }) => {
+  const { user, currentUser, loading } = useAuth();
+  const isAuthed = user ?? currentUser;
 
-    if(loading) {
-        return (
-            <div
-        className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-e-transparent align-[-0.125em] text-surface motion-reduce:animate-[spin_1.5s_linear_infinite] dark:text-white"
-        role="status">
-        <span
-          className="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]"
-          >Loading...</span>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[40vh]">
+        <div
+          className="inline-block w-8 h-8 text-gray-700 border-4 border-current border-solid rounded-full animate-spin border-e-transparent"
+          role="status"
+          aria-label="Loading"
+        />
       </div>
-        )
-    }
+    );
+  }
 
-    if(currentUser) {
-        return children;
-    }
+  if (!isAuthed) {
+    return <Navigate to="/login" replace />;
+  }
 
-  return <Navigate to="/login" replace/>
-}
+  return children;
+};
 
-export default PrivateRoute
+export default PrivateRoute;

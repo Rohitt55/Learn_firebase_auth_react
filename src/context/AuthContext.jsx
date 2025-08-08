@@ -1,55 +1,46 @@
 /* eslint-disable react-refresh/only-export-components */
-import { getAuth, onAuthStateChanged, updateProfile } from 'firebase/auth';
-import { createContext, useContext, useEffect, useState } from 'react';
-import app from '../firebase/firebase.config';
+import { getAuth, onAuthStateChanged, updateProfile } from "firebase/auth";
+import { createContext, useContext, useEffect, useState } from "react";
+import { getFirestore, doc, getDoc } from "firebase/firestore";
+import app from "../firebase/firebase.config";
 
 const AuthContext = createContext();
-
 export const useAuth = () => useContext(AuthContext);
 
 const auth = getAuth(app);
+const db = getFirestore();
 
 export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [role, setRole] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-    const [currentUser, setCurrentUser] = useState(null)
-    const [loading, setLoading] = useState(true)
-
-    useEffect( () => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            setLoading(false)
-            if (user) {
-             setCurrentUser(user)
-            } else{
-                setCurrentUser(null)
-            }
-          });
-
-        return () => unsubscribe()
-    }, [])
-
-    // update profile  functionality
-    const updateUserProfile = async (newProfile) => {
-        if(currentUser) {
-            try {
-               await updateProfile(currentUser, newProfile);
-
-               setCurrentUser((prevUser) => ({
-                ...prevUser, 
-                ...newProfile
-               }))
-            } catch (error) {
-                console.error("Error updating profile", error.message);
-                throw error;
-            }
-        } else{
-          throw new Error( "No user is currently Signed in.")  
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      if (u) {
+        setUser(u);
+        try {
+          const snap = await getDoc(doc(db, "users", u.uid));
+          setRole(snap.exists() ? snap.data().role : null);
+        } catch (e) {
+          console.error("Failed to load role:", e);
+          setRole(null);
         }
-    }
+      } else {
+        setUser(null);
+        setRole(null);
+      }
+      setLoading(false);
+    });
+    return () => unsub();
+  }, []);
 
-    const value = {currentUser, loading, updateUserProfile}
-    return  (
-        <AuthContext.Provider value={value}>
-            { children }
-        </AuthContext.Provider>
-    )
-}
+  const updateUserProfile = async (newProfile) => {
+    if (!user) throw new Error("No user is currently signed in.");
+    await updateProfile(user, newProfile);
+    setUser((prev) => ({ ...prev, ...newProfile }));
+  };
+
+  const value = { user, currentUser: user, role, loading, updateUserProfile };
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};

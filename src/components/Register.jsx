@@ -6,11 +6,11 @@ import {
   sendEmailVerification,
   signInWithPopup,
   GoogleAuthProvider,
+  FacebookAuthProvider,
   GithubAuthProvider,
-  signOut,
 } from "firebase/auth";
 import app from "../firebase/firebase.config";
-import { FaGithub, FaGoogle } from "react-icons/fa";
+import { FaFacebook, FaGithub, FaGoogle } from "react-icons/fa";
 
 const Register = () => {
   const [email, setEmail] = useState("");
@@ -20,6 +20,7 @@ const Register = () => {
   const auth = getAuth(app);
   const navigate = useNavigate();
 
+  // Email/Password Registration
   const handleRegister = async (e) => {
     e.preventDefault();
     setError("");
@@ -34,25 +35,40 @@ const Register = () => {
       const user = userCredential.user;
 
       await sendEmailVerification(user);
-      await signOut(auth); // force logout after registration
-
       setMessage(
-        "Registration successful! A verification email has been sent. Please verify your email before logging in."
+        "Registration successful! A verification email has been sent to your address."
       );
+      console.log("Verification email sent to:", user.email);
+
+      setTimeout(() => {
+        navigate("/login");
+      }, 3000);
     } catch (err) {
       console.error("Registration error:", err.message);
-      setError(" Registration failed: " + err.message);
+      setError("Registration failed: " + err.message);
     }
   };
 
+  // Social Registration/Login Handler
   const handleSocialSignup = async (providerName) => {
     setError("");
     setMessage("");
 
-    let provider =
-      providerName === "google"
-        ? new GoogleAuthProvider()
-        : new GithubAuthProvider();
+    let provider;
+
+    switch (providerName) {
+      case "google":
+        provider = new GoogleAuthProvider();
+        break;
+      case "facebook":
+        provider = new FacebookAuthProvider();
+        break;
+      case "github":
+        provider = new GithubAuthProvider();
+        break;
+      default:
+        return;
+    }
 
     try {
       const result = await signInWithPopup(auth, provider);
@@ -68,7 +84,7 @@ const Register = () => {
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
         <h2 className="text-2xl font-bold text-center text-gray-800">
-          Register
+          Please Register
         </h2>
 
         {message && (
@@ -85,38 +101,44 @@ const Register = () => {
 
         <form onSubmit={handleRegister} className="space-y-4">
           <div>
-            <label className="block mb-2 text-sm font-medium">Email</label>
+            <label className="block mb-2 text-sm font-medium text-gray-700">
+              Email:
+            </label>
             <input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               type="email"
-              required
-              className="w-full px-4 py-2 border rounded"
+              name="email"
               placeholder="Enter your email"
+              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+              required
             />
           </div>
 
           <div>
-            <label className="block mb-2 text-sm font-medium">Password</label>
+            <label className="block mb-2 text-sm font-medium text-gray-700">
+              Password:
+            </label>
             <input
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               type="password"
-              required
-              className="w-full px-4 py-2 border rounded"
+              name="password"
               placeholder="Enter your password"
+              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+              required
             />
           </div>
 
           <button
             type="submit"
-            className="w-full py-2 font-semibold text-white bg-blue-600 rounded hover:bg-blue-700"
+            className="w-full py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700"
           >
             Sign Up
           </button>
         </form>
 
-        {/* Social Signup */}
+        {/* Social signup buttons */}
         <div className="space-y-4 text-center">
           <p className="text-gray-600">Or sign up with</p>
           <div className="flex justify-center space-x-4">
@@ -125,6 +147,13 @@ const Register = () => {
               className="flex items-center px-4 py-2 space-x-2 text-white bg-red-500 rounded hover:bg-red-600"
             >
               <FaGoogle /> <span>Google</span>
+            </button>
+
+            <button
+              onClick={() => handleSocialSignup("facebook")}
+              className="flex items-center px-4 py-2 space-x-2 text-white bg-blue-500 rounded hover:bg-blue-600"
+            >
+              <FaFacebook /> <span>Facebook</span>
             </button>
 
             <button
